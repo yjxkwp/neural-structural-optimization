@@ -53,6 +53,10 @@ class Model(tf.keras.Model):
     
     def __init__(self, seed=None, args=None):
         super().__init__()
+        if isinstance(args, dict):
+            args['v_'] = 1 * (1 - 0.02)
+            args['v_'] = 0.8
+            args['volfrac'] = 1 * (1 - 0.02)
         set_random_seed(seed)
         self.seed = seed
         self.env = topo_api.Environment(args)
@@ -72,10 +76,12 @@ class PixelModel(Model):
     def __init__(self, seed=None, args=None):
         super().__init__(seed, args)
         shape = (1, self.env.args['nely'], self.env.args['nelx'])
-        z_init = np.broadcast_to(args['volfrac'] * args['mask'], shape)
+        # z_init = np.broadcast_to(args['volfrac'] * args['mask'], shape)
+        z_init = np.ones(shape)
         self.z = tf.Variable(z_init, trainable=True)
     
     def call(self, inputs=None):
+        # print("z = ", self.z)
         return self.z
 
 
@@ -157,12 +163,15 @@ class CNNModel(Model):
         outputs = tf.squeeze(net, axis=[-1])
         self.core_model = tf.keras.Model(inputs=inputs, outputs=outputs)
         
-        latent_initializer = tf.initializers.RandomNormal(stddev=latent_scale)
+        # latent_initializer = tf.initializers.RandomNormal(stddev=latent_scale)
+        latent_initializer = tf.ones_initializer()
         self.z = self.add_weight(
             shape=inputs.shape, initializer=latent_initializer, name='z')
     
     def call(self, inputs=None):
-        return self.core_model(self.z)
+        data = self.core_model(self.z)
+        # print("data = ", data)
+        return data
 
 
 def MaxPooling():
@@ -217,18 +226,20 @@ class FCNModel(Model):
         net = deconv(net, 32)
         # Classifier
         net = Conv2D(1, 1)(net)
-        net = tf.keras.activations.sigmoid(net)
+        # net = tf.keras.activations.sigmoid(net)
         
         # ------------ 下同CNN
         outputs = tf.squeeze(net, axis=[-1])
         self.core_model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
-        latent_initializer = tf.initializers.RandomNormal(stddev=latent_scale)
+        # latent_initializer = tf.initializers.RandomNormal(stddev=latent_scale)
+        latent_initializer = tf.ones_initializer()
         self.z = self.add_weight(
             shape=inputs.shape, initializer=latent_initializer, name='z')
     
     def call(self, inputs):
-        return self.core_model(self.z)
+        data = self.core_model(self.z)
+        return data
 
 
 class UNetModel(Model):
@@ -287,7 +298,8 @@ class UNetModel(Model):
         outputs = tf.squeeze(net, axis=[-1])
         self.core_model = tf.keras.Model(inputs=inputs, outputs=outputs)
         
-        latent_initializer = tf.initializers.RandomNormal(stddev=latent_scale)
+        # latent_initializer = tf.initializers.RandomNormal(stddev=latent_scale)
+        latent_initializer = tf.ones_initializer()
         self.z = self.add_weight(
             shape=inputs.shape, initializer=latent_initializer, name='z')
     

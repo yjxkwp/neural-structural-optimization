@@ -106,7 +106,7 @@ def train_lbfgs(
         model.z.assign(tf.cast(init_model(None), model.z.dtype))
 
     tvars = model.trainable_variables
-
+    
     def value_and_grad(x):
         _set_variables(tvars, x)
         with tf.GradientTape() as t:
@@ -116,6 +116,7 @@ def train_lbfgs(
         grads = t.gradient(loss, tvars)
         frames.append(logits.numpy().copy())
         losses.append(loss.numpy().copy())
+        print("-" * 20)
         return float(loss.numpy()), _get_variables(grads).astype(np.float64)
 
     x0 = _get_variables(tvars).astype(np.float64)
@@ -123,6 +124,7 @@ def train_lbfgs(
     _, _, info = scipy.optimize.fmin_l_bfgs_b(
         value_and_grad, x0, maxfun=max_iterations, factr=1, pgtol=1e-14, **kwargs
     )
+
     logging.info(info)
 
     designs = [model.env.render(x, volume_contraint=True) for x in frames]
